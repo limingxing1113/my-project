@@ -17,6 +17,7 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import re
 import sys
 import time
 import traceback
@@ -31,8 +32,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import config  # noqa: E402
 import deepseek  # noqa: E402
 import prompt as prompt_builder  # noqa: E402
+import storage  # noqa: E402
 
 MAX_BODY_BYTES = 1 << 20  # 1MB，表单文本足够用
+
+# /api/plans/<id>
+PLAN_ITEM_RE = re.compile(r"^/api/plans/([A-Za-z0-9_-]{1,64})$")
 
 
 def _now() -> str:
@@ -58,7 +63,7 @@ class StudyPlanHandler(BaseHTTPRequestHandler):
         if config.ALLOW_ORIGINS and "*" not in config.ALLOW_ORIGINS:
             allow = origin if origin in config.ALLOW_ORIGINS else config.ALLOW_ORIGINS[0]
         self.send_header("Access-Control-Allow-Origin", allow)
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, Authorization")
         self.send_header("Access-Control-Max-Age", "86400")
 
@@ -98,6 +103,7 @@ class StudyPlanHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:  # noqa: N802
         path = urllib.parse.urlparse(self.path).path
         if path == "/api/health":
+            info = storage.stats()
             self._send_json({
                 "ok": True,
                 "service": "学习计划定制系统",
@@ -105,8 +111,19 @@ class StudyPlanHandler(BaseHTTPRequestHandler):
                 "model_alias": "DeepSeek-V4.1-Flash",
                 "base_url": config.DEEPSEEK_BASE_URL,
                 "api_key_configured": bool(config.DEEPSEEK_API_KEY),
+                "saved_plans": info["total"],
                 "time": _now(),
             })
+            return
+        if path == "/api/plans":
+            self._handle_list_plans()
+            return
+        if path == "/api/plans/export":
+            self._handle_export_plans()
+            return
+        match = PLAN_ITEM_RE.match(path)
+        if match:
+            self._handle_get_plan(match.group(1))
             return
         if path.startswith("/api/"):
             self._send_json({"ok": False, "error": "接口不存在"}, status=404)
@@ -120,6 +137,25 @@ class StudyPlanHandler(BaseHTTPRequestHandler):
             return
         if path == "/api/plan/stream":
             self._handle_plan_stream()
+            return
+        if path == "/api/plans":
+            self._handle_save_plan()
+            return
+        self._send_json({"ok": False, "error": "接口不存在"}, status=404)
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        path = urllib.parse.urlparse(self.path).path
+        match = PLAN_ITEM_RE.match(path)
+        if match:
+            self._handle_update_plan(match.group(1))
+            return
+        self._send_json({"ok": False, "error": "接口不存在"}, status=404)
+
+    def do_DELETE(self) -> None:  # noqa: N802
+        path = urllib.parse.urlparse(self.path).path
+        match = PLAN_ITEM_RE.match(path)
+        if match:
+            self._handle_delete_plan(match.group(1))
             return
         self._send_json({"ok": False, "error": "接口不存在"}, status=404)
 
@@ -303,6 +339,125 @@ class StudyPlanHandler(BaseHTTPRequestHandler):
                 pass
 
 
+    # -------------------------------------------- 计划的保存与管理（SQLite）
+    def _handle_save_plan(self) -> None:
+        try:
+            payload = self._read_json()
+        except ValueError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+
+        plan_md = str(payload.get("plan") or "").strip()
+        if not plan_md:
+            self._send_json(
+                {"ok": False, "error": "没有可保存的计划内容，请先生成学习计划。"},
+                status=422,
+            )
+            return
+
+        # 学员信息原样存档（用于「我的计划」里展示），不做强校验
+        profile: Dict[str, Any] = {}
+        for key in list(prompt_builder.REQUIRED_FIELDS) + list(prompt_builder.OPTIONAL_FIELDS):
+            value = payload.get(key, "")
+            profile[key] = "" if value is None else value
+
+        if not str(profile.get("name") or "").strip():
+            profile["name"] = "学员"
+
+        try:
+            age = int(float(profile.get("age") or 0))
+        except (TypeError, ValueError):
+            age = None
+        profile["age"] = age
+
+        meta = payload.get("meta") if isinstance(payload.get("meta"), dict) else {}
+
+        try:
+            result = storage.save_plan(
+                profile, plan_md, str(payload.get("reasoning") or ""), meta
+            )
+        except ValueError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, status=422)
+            return
+        except Exception as exc:  # pragma: no cover
+            traceback.print_exc()
+            self._send_json({"ok": False, "error": f"保存失败：{exc}"}, status=500)
+            return
+
+        self.log_message("保存计划 id=%s 重复=%s", result["id"], result["duplicated"])
+        self._send_json({
+            "ok": True,
+            "id": result["id"],
+            "saved_at": result["created_at"],
+            "duplicated": result["duplicated"],
+            "message": "该计划之前已经保存过，已为你定位到原记录。" if result["duplicated"]
+                       else "计划已保存。",
+            "total": storage.count_plans(),
+        })
+
+    def _handle_list_plans(self) -> None:
+        query = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
+        keyword = (query.get("keyword") or [""])[0]
+        try:
+            limit = int((query.get("limit") or ["100"])[0])
+        except ValueError:
+            limit = 100
+        try:
+            offset = int((query.get("offset") or ["0"])[0])
+        except ValueError:
+            offset = 0
+
+        items = storage.list_plans(keyword, limit, offset)
+        self._send_json({
+            "ok": True,
+            "items": items,
+            "total": storage.count_plans(keyword),
+            "stats": storage.stats(),
+        })
+
+    def _handle_get_plan(self, plan_id: str) -> None:
+        item = storage.get_plan(plan_id)
+        if not item:
+            self._send_json({"ok": False, "error": "找不到这份计划，可能已被删除。"}, status=404)
+            return
+        self._send_json({"ok": True, "item": item})
+
+    def _handle_update_plan(self, plan_id: str) -> None:
+        try:
+            payload = self._read_json()
+        except ValueError as exc:
+            self._send_json({"ok": False, "error": str(exc)}, status=400)
+            return
+
+        if "starred" not in payload:
+            self._send_json({"ok": False, "error": "没有需要更新的字段。"}, status=422)
+            return
+
+        starred = bool(payload.get("starred"))
+        if not storage.set_starred(plan_id, starred):
+            self._send_json({"ok": False, "error": "找不到这份计划，可能已被删除。"}, status=404)
+            return
+        self._send_json({"ok": True, "id": plan_id, "starred": starred})
+
+    def _handle_delete_plan(self, plan_id: str) -> None:
+        if not storage.delete_plan(plan_id):
+            self._send_json({"ok": False, "error": "找不到这份计划，可能已被删除。"}, status=404)
+            return
+        self.log_message("删除计划 id=%s", plan_id)
+        self._send_json({"ok": True, "id": plan_id, "total": storage.count_plans()})
+
+    def _handle_export_plans(self) -> None:
+        body = storage.export_all().encode("utf-8")
+        filename = f"study-plans-{datetime.now().strftime('%Y%m%d_%H%M')}.json"
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Disposition", f'attachment; filename="{filename}"')
+        self.send_header("Content-Length", str(len(body)))
+        self._cors_headers()
+        self.end_headers()
+        self.wfile.write(body)
+
+
 def main() -> None:
     # Windows 控制台默认 GBK，做一层容错，避免个别字符导致启动崩溃
     for stream in (sys.stdout, sys.stderr):
@@ -311,6 +466,9 @@ def main() -> None:
         except Exception:
             pass
 
+    storage.init_db()
+    saved = storage.stats()
+
     banner = f"""
 ============================================================
   学习计划定制系统  ·  后端服务
@@ -318,6 +476,7 @@ def main() -> None:
   模型      : {config.DEEPSEEK_MODEL}  (DeepSeek-V4.1-Flash)
   接口地址  : {config.DEEPSEEK_BASE_URL}
   API Key   : {'已配置' if config.DEEPSEEK_API_KEY else '未配置 -> 请在 .env 中填写 DEEPSEEK_API_KEY'}
+  计划存储  : {saved['db_path']}（已保存 {saved['total']} 份）
   前端页面  : http://{config.HOST}:{config.PORT}/
   健康检查  : http://{config.HOST}:{config.PORT}/api/health
   按 Ctrl+C 停止服务

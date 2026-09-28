@@ -161,12 +161,48 @@
     });
   }
 
+  /* -------------------------------------------- 计划的保存与管理 */
+  function savePlan(payload) {
+    return http.post('/api/plans', payload).then(function (res) { return res.data; });
+  }
+
+  function listPlans(params) {
+    var query = [];
+    if (params && params.keyword) query.push('keyword=' + encodeURIComponent(params.keyword));
+    if (params && params.limit) query.push('limit=' + encodeURIComponent(params.limit));
+    var qs = query.length ? ('?' + query.join('&')) : '';
+    return http.get('/api/plans' + qs).then(function (res) { return res.data; });
+  }
+
+  function getPlan(id) {
+    return http.get('/api/plans/' + encodeURIComponent(id)).then(function (res) { return res.data; });
+  }
+
+  function starPlan(id, starred) {
+    return http.patch('/api/plans/' + encodeURIComponent(id), { starred: !!starred })
+      .then(function (res) { return res.data; });
+  }
+
+  function deletePlan(id) {
+    return http.delete('/api/plans/' + encodeURIComponent(id)).then(function (res) { return res.data; });
+  }
+
+  function exportUrl() {
+    return BASE_URL + '/api/plans/export';
+  }
+
   global.StudyPlanAPI = {
     BASE_URL: BASE_URL,
     http: http,
     health: health,
     createPlan: createPlan,
     createPlanStream: createPlanStream,
+    savePlan: savePlan,
+    listPlans: listPlans,
+    getPlan: getPlan,
+    starPlan: starPlan,
+    deletePlan: deletePlan,
+    exportUrl: exportUrl,
     normalizeError: normalizeError
   };
 })(window);

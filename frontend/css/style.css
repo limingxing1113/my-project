@@ -971,8 +971,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   .markdown-body table { min-width: 0; }
 }
 
-/* ---------------------------------------------- 14. 无障碍 */
-@media (prefers-reduced-motion: reduce) {
+/* ---------------------------------------------- 14. 无障碍 */@media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
@@ -981,3 +980,304 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 
 :focus-visible { outline: 2px solid rgba(140, 160, 255, 0.9); outline-offset: 2px; }
+
+/* ============================================================
+   15. 「我的计划」保存功能
+   ============================================================ */
+
+/* 顶部「我的计划」按钮 */
+.lib-btn { position: relative; padding-right: 10px; }
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--grad);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  font-family: var(--mono);
+  line-height: 1;
+}
+
+/* 结果区：保存按钮 */
+.btn-save {
+  background: rgba(52, 211, 153, 0.14);
+  border-color: rgba(52, 211, 153, 0.38);
+  color: #a7f3d0;
+}
+.btn-save:hover:not([disabled]) {
+  background: rgba(52, 211, 153, 0.22);
+  border-color: rgba(52, 211, 153, 0.6);
+  color: #d1fae5;
+}
+.btn-save[disabled] { opacity: 0.5; }
+.btn-save.is-saved {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.25);
+  color: #86efac;
+}
+.btn-save.saving { opacity: 0.75; }
+
+/* 查看已保存计划的横幅 */
+.saved-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(109, 140, 255, 0.35);
+  background: rgba(109, 140, 255, 0.12);
+  font-size: 12.5px;
+  color: #cfd9ff;
+}
+.saved-banner .ico { color: #a9baff; }
+.saved-banner span { flex: 1; }
+.saved-banner .link-btn { color: #b9c6ff; }
+
+/* 遮罩 + 抽屉 */
+.drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(4, 7, 18, 0.62);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  animation: fadeIn 0.24s ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.drawer {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  z-index: 61;
+  width: min(440px, 92vw);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  background: linear-gradient(180deg, #0d1428, #080d1c);
+  box-shadow: -24px 0 60px rgba(2, 5, 16, 0.6);
+  animation: drawerIn 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+@keyframes drawerIn {
+  from { transform: translateX(100%); opacity: 0.4; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px 20px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.drawer-head h2 {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 17px; font-weight: 650;
+}
+.drawer-head p { font-size: 12px; color: var(--muted-2); margin-top: 3px; }
+
+.icon-btn {
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  transition: all 0.2s;
+  flex: 0 0 auto;
+}
+.icon-btn:hover { background: var(--surface-2); color: #fff; border-color: var(--border-strong); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+.drawer-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+.search-wrap { position: relative; }
+.search-ico {
+  position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 15px; height: 15px; color: var(--muted-2); pointer-events: none;
+}
+.search-input { padding-left: 35px; font-size: 13px; }
+.search-input::-webkit-search-cancel-button { filter: invert(0.6); }
+
+.mini-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  width: fit-content;
+}
+.mini-switch input { position: absolute; opacity: 0; pointer-events: none; }
+.mini-switch .track {
+  width: 34px; height: 19px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  position: relative;
+  transition: background 0.25s ease;
+  flex: 0 0 auto;
+}
+.mini-switch .thumb {
+  position: absolute; top: 2.5px; left: 2.5px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.25s cubic-bezier(0.4, 1.6, 0.5, 1);
+}
+.mini-switch input:checked + .track { background: var(--grad); }
+.mini-switch input:checked + .track .thumb { transform: translateX(15px); }
+.mini-switch input:focus-visible + .track { box-shadow: 0 0 0 4px rgba(109, 140, 255, 0.22); }
+
+/* 抽屉列表 */
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.plan-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(8, 12, 26, 0.5);
+  padding: 13px 14px;
+  transition: border-color 0.2s, background 0.2s, transform 0.2s;
+  animation: fadeUp 0.3s ease;
+}
+.plan-card:hover { border-color: var(--border-strong); background: rgba(12, 18, 36, 0.7); }
+.plan-card.active {
+  border-color: rgba(109, 140, 255, 0.7);
+  background: rgba(109, 140, 255, 0.1);
+  box-shadow: 0 0 0 3px rgba(109, 140, 255, 0.12);
+}
+
+.plan-card-head { display: flex; align-items: flex-start; gap: 10px; }
+.plan-card-title {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 620;
+  line-height: 1.45;
+  color: #edf1ff;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.star-btn {
+  border: 0; background: transparent;
+  padding: 2px;
+  color: rgba(255, 255, 255, 0.22);
+  transition: color 0.2s, transform 0.2s;
+  flex: 0 0 auto;
+}
+.star-btn:hover { color: #fbbf24; transform: scale(1.12); }
+.star-btn svg { width: 17px; height: 17px; }
+.star-btn[aria-pressed="true"] { color: #fbbf24; }
+
+.plan-card-meta {
+  font-size: 11.5px;
+  color: var(--muted-2);
+  font-family: var(--mono);
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.plan-card-meta i {
+  font-style: normal;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.06);
+}
+.plan-card-goal {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-top: 7px;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.plan-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 11px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+.plan-card-time { font-size: 11px; color: var(--muted-2); font-family: var(--mono); }
+.plan-card-actions { display: flex; gap: 6px; }
+
+.btn-xs { padding: 5px 11px; font-size: 11.5px; border-radius: 9px; }
+.btn-danger { color: #ffb3bf; border-color: rgba(255, 114, 133, 0.3); }
+.btn-danger:hover:not([disabled]) {
+  background: rgba(255, 114, 133, 0.14);
+  border-color: rgba(255, 114, 133, 0.55);
+  color: #ffd7dd;
+}
+
+/* 抽屉空态 / 加载态 */
+.lib-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 10px;
+  padding: 40px 16px;
+  color: var(--muted-2);
+}
+.lib-empty svg { width: 40px; height: 40px; color: rgba(255, 255, 255, 0.16); }
+.lib-empty h3 { font-size: 14px; color: var(--muted); font-weight: 600; }
+.lib-empty p { font-size: 12.5px; max-width: 260px; line-height: 1.6; }
+
+.skeleton {
+  height: 92px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: linear-gradient(100deg, rgba(255, 255, 255, 0.04) 30%,
+    rgba(255, 255, 255, 0.09) 50%, rgba(255, 255, 255, 0.04) 70%);
+  background-size: 220% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+@keyframes shimmer {
+  from { background-position: 130% 0; }
+  to { background-position: -30% 0; }
+}
+
+.drawer-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 13px 20px;
+  border-top: 1px solid var(--border);
+  background: rgba(6, 9, 20, 0.6);
+}
+.drawer-foot-text { font-size: 11.5px; color: var(--muted-2); }
+
+@media (max-width: 640px) {
+  .lib-btn { padding: 7px 11px; }
+  .drawer { width: 100vw; }
+  .drawer-head, .drawer-tools, .drawer-body, .drawer-foot { padding-left: 16px; padding-right: 16px; }
+}

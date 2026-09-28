@@ -34,6 +34,15 @@
     </div>
 
     <div class="header-meta">
+      <button type="button" class="btn btn-ghost btn-sm lib-btn" id="btn-library" title="查看已保存的学习计划">
+        <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 3H20v18H6.5A2.5 2.5 0 0 1 4 18.5v-13A2.5 2.5 0 0 1 6.5 3z" />
+        </svg>
+        我的计划
+        <span class="count-badge" id="lib-count" hidden>0</span>
+      </button>
       <span class="model-badge" id="model-badge" title="由 DeepSeek 大模型驱动">
         <span class="dot"></span>
         <strong>DeepSeek-V4.1-Flash</strong>
@@ -265,12 +274,30 @@
 
       <!-- 结果 -->
       <div class="state state-result" id="state-result" hidden>
+        <div class="saved-banner" id="saved-banner" hidden>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <path d="M17 21v-8H7v8M7 3v5h8" />
+          </svg>
+          <span id="saved-banner-text">正在查看已保存的计划</span>
+          <button type="button" class="link-btn" id="btn-back-live" hidden>返回本次生成</button>
+        </div>
         <div class="result-toolbar">
           <div class="result-title">
             <span class="badge-ok">生成完成</span>
             <span class="result-meta" id="result-meta"></span>
           </div>
           <div class="tool-actions">
+            <button type="button" class="btn btn-save btn-sm" id="btn-save" disabled
+                    title="保存到服务端，之后可随时查看">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                <path d="M17 21v-8H7v8M7 3v5h8" />
+              </svg>
+              <span id="btn-save-text">保存计划</span>
+            </button>
             <button type="button" class="btn btn-ghost btn-sm" id="btn-copy" title="复制 Markdown 原文">
               <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
                    stroke-linecap="round" stroke-linejoin="round">
@@ -302,6 +329,44 @@
     <span>学习计划定制系统 · 后端 Python + 前端 HTML / CSS / JS / Axios</span>
     <span>模型服务：<a href="https://api-docs.deepseek.com/zh-cn/" target="_blank" rel="noopener">DeepSeek API</a> · deepseek-flash（DeepSeek-V4.1-Flash）</span>
   </footer>
+
+  <!-- ================= 「我的计划」抽屉 ================= -->
+  <div class="drawer-overlay" id="drawer-overlay" hidden></div>
+  <aside class="drawer" id="drawer" hidden aria-label="我的计划">
+    <header class="drawer-head">
+      <div>
+        <h2>我的计划 <span class="count-badge" id="drawer-count">0</span></h2>
+        <p id="drawer-sub">已保存到服务端数据库，可随时查看或删除</p>
+      </div>
+      <button type="button" class="icon-btn" id="btn-drawer-close" aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+             stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+      </button>
+    </header>
+
+    <div class="drawer-tools">
+      <div class="search-wrap">
+        <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.9" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7" /><path d="m20 20-3.2-3.2" />
+        </svg>
+        <input class="input search-input" id="lib-search" type="search"
+               placeholder="搜索姓名 / 标题 / 目标…" autocomplete="off" />
+      </div>
+      <label class="mini-switch" title="生成完成后自动保存到「我的计划」">
+        <input type="checkbox" id="auto-save" />
+        <span class="track"><span class="thumb"></span></span>
+        <span>自动保存</span>
+      </label>
+    </div>
+
+    <div class="drawer-body" id="lib-list"></div>
+
+    <footer class="drawer-foot">
+      <button type="button" class="btn btn-ghost btn-sm" id="btn-export">导出全部</button>
+      <span class="drawer-foot-text" id="lib-foot-text"></span>
+    </footer>
+  </aside>
 
   <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
 
