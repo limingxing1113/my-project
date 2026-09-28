@@ -1,0 +1,19 @@
+# 依赖与缓存
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# 密钥配置（重要：不要提交）
+.env
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# 临时预览文件
+.preview/
+_preview_*.html
+_sample_plan.*

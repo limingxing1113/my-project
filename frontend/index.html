@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>学习计划定制系统 · AI 个性化学习规划</title>
+  <meta name="description" content="填写你的基本情况，由 DeepSeek 大模型为你量身定制一份可执行的学习计划。" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%93%9A%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <!-- 背景装饰 -->
+  <div class="bg-decor" aria-hidden="true">
+    <span class="blob blob-1"></span>
+    <span class="blob blob-2"></span>
+    <span class="blob blob-3"></span>
+    <span class="grid-overlay"></span>
+  </div>
+
+  <header class="site-header">
+    <div class="brand">
+      <div class="brand-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z" />
+          <path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5A2.5 2.5 0 0 1 4 20.5z" />
+          <path d="M9 8h6M9 11.5h4" />
+        </svg>
+      </div>
+      <div class="brand-text">
+        <h1>学习计划定制系统</h1>
+        <p>填写你的情况，AI 为你量身编排一份能真正执行的学习计划</p>
+      </div>
+    </div>
+
+    <div class="header-meta">
+      <span class="model-badge" id="model-badge" title="由 DeepSeek 大模型驱动">
+        <span class="dot"></span>
+        <strong>DeepSeek-V4.1-Flash</strong>
+      </span>
+      <span class="conn-badge" id="conn-badge" data-state="checking" title="后端服务状态">
+        <span class="dot"></span><span id="conn-text">检测中…</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ================= 左：表单 ================= -->
+    <section class="card form-card">
+      <div class="card-head">
+        <h2>
+          <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+          学员信息
+        </h2>
+        <button type="button" class="link-btn" id="btn-sample">填入示例</button>
+      </div>
+
+      <form id="plan-form" novalidate autocomplete="off">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label" for="name">姓名 <i class="req">*</i></label>
+            <input class="input" type="text" id="name" name="name" maxlength="30"
+                   placeholder="例如：李明" />
+            <p class="field-error" data-error-for="name"></p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="age">年龄 <i class="req">*</i></label>
+            <div class="input-suffix">
+              <input class="input" type="number" id="age" name="age" min="5" max="100"
+                     placeholder="例如：20" />
+              <span class="suffix">岁</span>
+            </div>
+            <p class="field-error" data-error-for="age"></p>
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="field-label">性别 <i class="req">*</i></span>
+          <div class="pill-group" id="gender-group" role="radiogroup" aria-label="性别">
+            <label class="pill"><input type="radio" name="gender" value="男" /><span>男</span></label>
+            <label class="pill"><input type="radio" name="gender" value="女" /><span>女</span></label>
+            <label class="pill"><input type="radio" name="gender" value="其他" /><span>其他</span></label>
+            <label class="pill"><input type="radio" name="gender" value="不愿透露" /><span>不愿透露</span></label>
+          </div>
+          <p class="field-error" data-error-for="gender"></p>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="education">学历 <i class="req">*</i></label>
+          <div class="select-wrap">
+            <select class="input select" id="education" name="education">
+              <option value="">请选择当前学历…</option>
+              <option>小学</option>
+              <option>初中</option>
+              <option>高中 / 中专</option>
+              <option>大专</option>
+              <option>本科</option>
+              <option>硕士</option>
+              <option>博士</option>
+              <option>其他</option>
+            </select>
+            <svg class="select-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+          <p class="field-error" data-error-for="education"></p>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="knowledge_base">
+            知识基础 <i class="req">*</i>
+            <span class="hint">已掌握什么？薄弱在哪？</span>
+          </label>
+          <textarea class="input textarea" id="knowledge_base" name="knowledge_base" rows="4"
+                    maxlength="1500"
+                    placeholder="例如：计算机专业大三，Python 会基础语法但没写过完整项目，数据结构基本忘光了，英语能读文档但慢。"></textarea>
+          <div class="chips" data-target="knowledge_base">
+            <button type="button" class="chip">零基础，从没接触过</button>
+            <button type="button" class="chip">学过一点，但忘得差不多了</button>
+            <button type="button" class="chip">有基础，想系统提升</button>
+          </div>
+          <p class="field-error" data-error-for="knowledge_base"></p>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="study_habit">
+            学习习惯 <i class="req">*</i>
+            <span class="hint">什么时间学？能学多久？</span>
+          </label>
+          <textarea class="input textarea" id="study_habit" name="study_habit" rows="4"
+                    maxlength="1500"
+                    placeholder="例如：晚上 8-10 点效率最高，每天能学 2 小时，周末 3 小时；喜欢看视频课，容易刷手机分心。"></textarea>
+          <div class="chips" data-target="study_habit">
+            <button type="button" class="chip">每天碎片时间共 1 小时</button>
+            <button type="button" class="chip">晚上专注 2 小时</button>
+            <button type="button" class="chip">周末集中学习</button>
+            <button type="button" class="chip">容易拖延，需要打卡督促</button>
+          </div>
+          <p class="field-error" data-error-for="study_habit"></p>
+        </div>
+
+        <details class="advanced" id="advanced">
+          <summary>
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg>
+            选填：让计划更精准
+          </summary>
+          <div class="advanced-body">
+            <div class="field">
+              <label class="field-label" for="goal">学习目标</label>
+              <input class="input" type="text" id="goal" name="goal" maxlength="500"
+                     placeholder="例如：3 个月内通过英语六级 / 转行做前端开发" />
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label class="field-label" for="weekly_hours">每周可投入</label>
+                <input class="input" type="text" id="weekly_hours" name="weekly_hours" maxlength="60"
+                       placeholder="例如：15 小时" />
+              </div>
+              <div class="field">
+                <label class="field-label" for="duration">计划周期</label>
+                <input class="input" type="text" id="duration" name="duration" maxlength="60"
+                       placeholder="例如：3 个月" />
+              </div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="preference">偏好的学习方式</label>
+              <input class="input" type="text" id="preference" name="preference" maxlength="300"
+                     placeholder="例如：喜欢视频课 + 动手做项目，不爱看厚书" />
+            </div>
+          </div>
+        </details>
+
+        <div class="switch-row">
+          <label class="switch">
+            <input type="checkbox" id="thinking" checked />
+            <span class="track"><span class="thumb"></span></span>
+            <span class="switch-text">
+              深度思考模式
+              <small>更细致但更慢，可实时查看推理过程</small>
+            </span>
+          </label>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary" id="btn-submit">
+            <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"
+                 stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3v3M12 18v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M3 12h3M18 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>
+            </svg>
+            <span id="btn-submit-text">生成我的学习计划</span>
+          </button>
+          <button type="button" class="btn btn-ghost" id="btn-reset">重置</button>
+        </div>
+        <p class="form-tip">信息仅用于本次生成，不会保存在服务器。</p>
+      </form>
+    </section>
+
+    <!-- ================= 右：结果 ================= -->
+    <section class="card result-card">
+      <!-- 空状态 -->
+      <div class="state state-empty" id="state-empty">
+        <div class="empty-art" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3"
+               stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="3" />
+            <path d="M8 8h5M8 12h8M8 16h6" />
+          </svg>
+        </div>
+        <h3>还没有生成计划</h3>
+        <p>在左侧填写你的基本信息，点击「生成我的学习计划」，AI 会结合你的知识基础与学习习惯，产出一份分阶段、可执行的学习方案。</p>
+        <ul class="feature-list">
+          <li><span>01</span> 结合基础定起点，不浪费时间</li>
+          <li><span>02</span> 按你的作息排每日任务</li>
+          <li><span>03</span> 阶段目标可量化、可自测</li>
+        </ul>
+      </div>
+
+      <!-- 加载中 -->
+      <div class="state state-loading" id="state-loading" hidden>
+        <div class="loader">
+          <span class="ring"></span>
+          <span class="core"></span>
+        </div>
+        <h3 id="loading-title">正在为你生成学习计划…</h3>
+        <p class="loading-status" id="loading-status" aria-live="polite">正在分析你的知识基础…</p>
+        <div class="progress"><span id="progress-bar"></span></div>
+        <div class="loading-meta">
+          <span id="loading-timer">已用时 0.0s</span>
+          <span class="sep">·</span>
+          <span id="loading-chars">已生成 0 字</span>
+        </div>
+
+        <div class="think-panel" id="think-panel" hidden>
+          <button type="button" class="think-head" id="think-toggle" aria-expanded="false">
+            <span class="pulse"></span>
+            <span>模型的思考过程</span>
+            <em id="think-preview">正在推理…</em>
+            <svg class="ico chev" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <pre class="think-body" id="think-body" hidden></pre>
+        </div>
+
+        <button type="button" class="btn btn-ghost btn-sm" id="btn-abort">停止生成</button>
+      </div>
+
+      <!-- 出错 -->
+      <div class="state state-error" id="state-error" hidden>
+        <div class="error-art" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+               stroke-linecap="round">
+            <path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9 2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>
+          </svg>
+        </div>
+        <h3>生成失败</h3>
+        <p id="error-message">未知错误。</p>
+        <div class="error-actions">
+          <button type="button" class="btn btn-primary btn-sm" id="btn-retry">重试一次</button>
+          <button type="button" class="btn btn-ghost btn-sm" id="btn-error-copy">复制错误详情</button>
+        </div>
+        <pre class="error-detail" id="error-detail" hidden></pre>
+      </div>
+
+      <!-- 结果 -->
+      <div class="state state-result" id="state-result" hidden>
+        <div class="result-toolbar">
+          <div class="result-title">
+            <span class="badge-ok">生成完成</span>
+            <span class="result-meta" id="result-meta"></span>
+          </div>
+          <div class="tool-actions">
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-copy" title="复制 Markdown 原文">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="11" height="11" rx="2" />
+                <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+              </svg>复制
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-download" title="下载为 Markdown 文件">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3v12M7 11l5 5 5-5M5 21h14" />
+              </svg>下载
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-print" title="打印或另存为 PDF">
+              <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                   stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 9V3h12v6M6 18H4v-6h16v6h-2M8 14h8v7H8z" />
+              </svg>打印
+            </button>
+            <button type="button" class="btn btn-ghost btn-sm" id="btn-again">重新生成</button>
+          </div>
+        </div>
+        <article class="markdown-body" id="plan-content"></article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <span>学习计划定制系统 · 后端 Python + 前端 HTML / CSS / JS / Axios</span>
+    <span>模型服务：<a href="https://api-docs.deepseek.com/zh-cn/" target="_blank" rel="noopener">DeepSeek API</a> · deepseek-flash（DeepSeek-V4.1-Flash）</span>
+  </footer>
+
+  <div class="toast-stack" id="toast-stack" aria-live="polite"></div>
+
+  <!-- Axios：优先用本地文件（离线可用），失败时回退到 CDN -->
+  <script src="js/axios.min.js"></script>
+  <script>
+    if (typeof axios === 'undefined') {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/axios@1.7.7/dist/axios.min.js"><\/script>');
+    }
+  </script>
+  <script>
+    if (typeof axios === 'undefined') {
+      document.addEventListener('DOMContentLoaded', function () {
+        var text = document.getElementById('conn-text');
+        var el = document.getElementById('conn-badge');
+        if (el) { el.dataset.state = 'error'; }
+        if (text) { text.textContent = 'Axios 未加载'; }
+        alert('Axios 加载失败：请检查 frontend/js/axios.min.js 是否存在，或连接网络后重试。');
+      });
+    }
+  </script>
+  <script src="js/markdown.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

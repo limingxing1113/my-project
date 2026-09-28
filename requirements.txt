@@ -1,0 +1,16 @@
+# 说明：本项目后端只使用 Python 标准库，没有第三方依赖。
+# 因此这里不需要安装任何包，直接运行即可：
+#
+#     python backend/server.py
+#
+# 使用到的标准库模块：
+#   http.server    —— 提供 HTTP 服务与静态文件托管
+#   urllib.request —— 调用 DeepSeek 的 /chat/completions 接口（含 SSE 流式读取）
+#   json / threading / datetime / pathlib / mimetypes ...
+#
+# 如果你的 Python 版本较老（< 3.7），建议升级到 3.8 以上。
+#
+# ---------------------------------------------------------------
+# 可选：如果你想把后端换成 Flask 版本，可以取消下面两行的注释再安装
+# flask>=3.0
+# flask-cors>=4.0
